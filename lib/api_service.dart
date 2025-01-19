@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://crudcrud.com/api/7f27486f21e94a7fad510553b2801221';
+  static const String baseUrl = 'https://crudcrud.com/api/be05119e349a454b9d467d6ed523406a';
 
   Future<bool> registerUser(String username, String password) async {
     try {
@@ -70,12 +70,12 @@ class ApiService {
     }
   }
 
-  Future<bool> updateReview(String id, String title, int rating, String comment) async {
+  Future<bool> updateReview(String id, String username, String title, int rating, String comment) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/reviews/$id'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'title': title, 'rating': rating, 'comment': comment}),
+        body: jsonEncode({'username': username, 'title': title, 'rating': rating, 'comment': comment}),
       );
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');

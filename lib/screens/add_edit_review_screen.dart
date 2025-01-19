@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../api_service.dart';
 
 class AddEditReviewScreen extends StatefulWidget {
@@ -16,6 +19,8 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
   final _ratingController = TextEditingController();
   final _commentController = TextEditingController();
   final _apiService = ApiService();
+
+  File ? _selectedImage;
 
   @override
   void initState() {
@@ -46,7 +51,7 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
       success = await _apiService.addReview(widget.username, title, rating, comment);
     } else {
       // Edit review
-      success = await _apiService.updateReview(widget.review!['_id'], title, rating, comment);
+      success = await _apiService.updateReview(widget.review!['_id'], widget.username, title, rating, comment);
     }
 
     if (success) {
@@ -56,6 +61,16 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
         SnackBar(content: Text('Gagal menyimpan review')),
       );
     }
+  }
+
+  Future _pickImageFromGallery() async {
+    final returnedImage = await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (returnedImage == null) return;
+
+    setState(() {
+      _selectedImage = File(returnedImage.path);
+    });
   }
 
   @override
@@ -83,7 +98,23 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
               controller: _commentController,
               decoration: InputDecoration(labelText: 'Komentar'),
             ),
-            SizedBox(height: 20),
+            MaterialButton(
+              color: Colors.lightBlue,
+              child: Text(
+                "Pilih Gambar",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+              onPressed: () {
+                _pickImageFromGallery();
+              },
+            ),
+            const SizedBox(height: 20,),
+            Container(
+              child: _selectedImage != null ? Image.file(_selectedImage!) : Text("Your selected Image will show in here"),
+            ),
             ElevatedButton(
               onPressed: _saveReview,
               child: Text('Simpan'),
