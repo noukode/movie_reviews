@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://crudcrud.com/api/be05119e349a454b9d467d6ed523406a';
+  static const String baseUrl = 'https://crudcrud.com/api/3c065e0bcb86471daf0058baa0af35ad';
 
   Future<bool> registerUser(String username, String password) async {
     try {
@@ -56,12 +56,12 @@ class ApiService {
     }
   }
 
-  Future<bool> addReview(String username, String title, int rating, String comment) async {
+  Future<bool> addReview(String username, String title, int rating, String comment, String poster, bool isLiked) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/reviews'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'title': title, 'rating': rating, 'comment': comment}),
+        body: jsonEncode({'username': username, 'title': title, 'rating': rating, 'comment': comment, 'poster': poster, 'isLiked': isLiked ? 1 : 0}),
       );
       return response.statusCode == 201;
     } catch (e) {
@@ -70,12 +70,12 @@ class ApiService {
     }
   }
 
-  Future<bool> updateReview(String id, String username, String title, int rating, String comment) async {
+  Future<bool> updateReview(String id, String username, String title, int rating, String comment, String poster, bool isLiked) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/reviews/$id'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'title': title, 'rating': rating, 'comment': comment}),
+        body: jsonEncode({'username': username, 'title': title, 'rating': rating, 'comment': comment, 'poster': poster, 'isLiked': isLiked ? 1 : 0}),
       );
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
@@ -92,6 +92,24 @@ class ApiService {
       return response.statusCode == 200;
     } catch (e) {
       print('Error deleting review: $e');
+      return false;
+    }
+  }
+
+  Future<bool> doLike(Map item) async {
+    try {
+      int isLiked = item['isLiked'] == 1 ? 0 : 1;
+      final response = await http.put(
+        Uri.parse('$baseUrl/reviews/${item['_id']}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': item['username'], 'title': item['title'], 'rating': item['rating'], 'comment': item['comment'], 'poster': item['poster'], 'isLiked': isLiked}),
+      );
+      print('lewat ${item['_id']}');
+      print('isLiked ${item['isLiked']} ${isLiked}');
+      print('response ${response.statusCode}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error while liking / unlike review: $e');
       return false;
     }
   }

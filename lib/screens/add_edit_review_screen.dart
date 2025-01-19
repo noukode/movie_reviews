@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,7 +22,8 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
   final _commentController = TextEditingController();
   final _apiService = ApiService();
 
-  File ? _selectedImage;
+  String _selectedImage = '';
+  bool _isLiked = false;
 
   @override
   void initState() {
@@ -29,6 +32,11 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
       _titleController.text = widget.review!['title'];
       _ratingController.text = widget.review!['rating'].toString();
       _commentController.text = widget.review!['comment'];
+      _isLiked = widget.review!['isLiked'] == 1 ? true : false;
+
+      setState(() {
+        _selectedImage = widget.review!['poster'];
+      });
     }
   }
 
@@ -48,10 +56,10 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
     bool success;
     if (widget.review == null) {
       // Tambah review baru
-      success = await _apiService.addReview(widget.username, title, rating, comment);
+      success = await _apiService.addReview(widget.username, title, rating, comment, _selectedImage, _isLiked);
     } else {
       // Edit review
-      success = await _apiService.updateReview(widget.review!['_id'], widget.username, title, rating, comment);
+      success = await _apiService.updateReview(widget.review!['_id'], widget.username, title, rating, comment, _selectedImage, _isLiked);
     }
 
     if (success) {
@@ -68,9 +76,19 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
 
     if (returnedImage == null) return;
 
+    final bytes = File(returnedImage.path).readAsBytesSync();
+
+    String imageInBase64 = base64Encode(bytes);
+
     setState(() {
-      _selectedImage = File(returnedImage.path);
+      _selectedImage = imageInBase64;
     });
+  }
+
+  Image _showImage(fileSelected) {
+    Uint8List bytes = base64Decode(fileSelected);
+
+    return Image.memory(bytes);
   }
 
   @override
@@ -79,49 +97,51 @@ class _AddEditReviewScreenState extends State<AddEditReviewScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(isEditMode ? 'Edit Review' : 'Tambah Review')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(labelText: 'Judul Film'),
-              readOnly: isEditMode, // Nonaktifkan input jika dalam mode edit
-            ),
-            TextField(
-              controller: _ratingController,
-              decoration: InputDecoration(labelText: 'Rating (1-10)'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
-              controller: _commentController,
-              decoration: InputDecoration(labelText: 'Komentar'),
-            ),
-            MaterialButton(
-              color: Colors.lightBlue,
-              child: Text(
-                "Pilih Gambar",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(labelText: 'Judul Film'),
+                readOnly: isEditMode, // Nonaktifkan input jika dalam mode edit
               ),
-              onPressed: () {
-                _pickImageFromGallery();
-              },
-            ),
-            const SizedBox(height: 20,),
-            Container(
-              child: _selectedImage != null ? Image.file(_selectedImage!) : Text("Your selected Image will show in here"),
-            ),
-            ElevatedButton(
-              onPressed: _saveReview,
-              child: Text('Simpan'),
-            ),
-          ],
+              TextField(
+                controller: _ratingController,
+                decoration: InputDecoration(labelText: 'Rating (1-10)'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: _commentController,
+                decoration: InputDecoration(labelText: 'Komentar'),
+              ),
+              MaterialButton(
+                color: Colors.lightBlue,
+                child: Text(
+                  "Pilih Gambar",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+                onPressed: () {
+                  _pickImageFromGallery();
+                },
+              ),
+              const SizedBox(height: 20,),
+              Container(
+                child: _selectedImage != '' ? _showImage(_selectedImage) : Text("Your selected Image will show in here"),
+              ),
+              ElevatedButton(
+                onPressed: _saveReview,
+                child: Text('Simpan'),
+              ),
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 }

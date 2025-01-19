@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../api_service.dart';
 import 'add_edit_review_screen.dart';
@@ -15,6 +17,8 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
   final _apiService = ApiService();
   List<dynamic> _reviews = [];
 
+  String statusText = 'Loading...';
+
   @override
   void initState() {
     super.initState();
@@ -23,6 +27,9 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
 
   Future<void> _loadReviews() async {
     final reviews = await _apiService.getReviews(widget.username);
+    if (reviews.isEmpty) {
+      statusText = 'Belum ada review. Tambahkan sekarang!';
+    }
     setState(() {
       _reviews = reviews;
     });
@@ -36,6 +43,17 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menghapus review')),
       );
+    }
+  }
+
+  void _doLike(Map item) async {
+    final success = await _apiService.doLike(item);
+
+    if (success) {
+      _loadReviews();
+      print('Refresh');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Something went wrong')));
     }
   }
 
@@ -60,18 +78,53 @@ class _MovieReviewsScreenState extends State<MovieReviewsScreen> {
         ],
       ),
       body: _reviews.isEmpty
-          ? Center(child: Text('Belum ada review. Tambahkan sekarang!'))
+          ? Center(child: Text(statusText))
           : ListView.builder(
               itemCount: _reviews.length,
               itemBuilder: (context, index) {
                 final review = _reviews[index];
                 return ListTile(
                   title: Text(review['title']),
-                  subtitle: Text('${review['rating']} / 10\n${review['comment']}'),
+                  subtitle: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.star, color: Colors.amber[400], size: 12,),
+                          Text(' '),
+                        ],
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${review['rating']}/10'),
+                          Text(review['comment']),
+                        ],
+                      )
+                    ],
+                  ),
                   isThreeLine: true,
+                  leading: SizedBox(
+                    height: 100.0,
+                    width: 50.0,
+                    child: review['poster'] != '' ? Image.memory(base64Decode(review['poster'])) : Text('No Image', textAlign: TextAlign.center,),
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      IconButton(
+                        icon: Icon(
+                          review['isLiked'] == 0 ? Icons.thumb_up_outlined : Icons.thumb_up,
+                          color: review['isLiked'] == 0 ? Colors.black87 : Colors.lightBlue,
+                        ),
+                        onPressed: () => _doLike(review),
+                      ),
                       IconButton(
                         icon: Icon(Icons.edit),
                         onPressed: () async {
